@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">BackupContact</string>
+    <string name="label_ok">OK</string>
+    <string name="label_cancle">Cancle</string>
+    <string name="permission_title_rationale">Permission needed</string>
+    <string name="permission_read_contact">Read Contact</string>
+</resources>
