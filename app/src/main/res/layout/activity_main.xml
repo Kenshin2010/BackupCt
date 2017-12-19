@@ -7,6 +7,7 @@
     tools:context="vn.manroid.backupcontact.MainActivity">
 
     <ImageView
+        android:src="@drawable/phone"
         android:id="@+id/splash"
         android:layout_width="150dp"
         android:layout_height="150dp"
@@ -30,20 +31,28 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="55dp"
         android:gravity="center"
-        android:text="Total : 300 contacts"
+        android:text="Please backup"
         android:textColor="#3f8abf" />
 
-    <TextView
+    <ProgressBar
+        style="?android:attr/progressBarStyleHorizontal"
         android:id="@+id/progress"
         android:layout_width="250dp"
         android:layout_height="35dp"
         android:layout_below="@+id/text_show"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="30dp"
-        android:background="@drawable/custom_demo"
-        android:gravity="center_horizontal"
-        android:text="0/382"
-        android:textColor="#F4F4F4" />
+        android:layout_marginTop="30dp" />
+
+    <TextView
+        android:text="0%"
+        android:layout_marginBottom="10dp"
+        android:layout_marginTop="20dp"
+        android:layout_below="@+id/text_show"
+        android:textColor="#3f8abf"
+        android:layout_centerHorizontal="true"
+        android:id="@+id/txt_prg"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
 
     <!--<LinearLayout-->
     <!--android:id="@+id/ln_backup"-->

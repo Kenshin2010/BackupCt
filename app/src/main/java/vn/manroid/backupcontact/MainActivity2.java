@@ -1,14 +1,24 @@
 package vn.manroid.backupcontact;
 
 import android.content.ContentResolver;
+import android.content.Intent;
+import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
 import android.provider.ContactsContract;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,167 +29,121 @@ import ezvcard.property.StructuredName;
 
 public class MainActivity2 extends BaseActivity implements View.OnClickListener {
 
-    private List<String> list;
+    private Cursor cursor;
+    private ArrayList<String> vCard;
+    private String vfile;
     private Button btnBackup;
+    private ProgressBar prg;
+    private int progressStatus = 0;
+    private Handler handler = new Handler();
+    private TextView txtShowProgress;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initView();
-        list = new ArrayList<>();
-        askForContactPermission();
         btnBackup.setOnClickListener(this);
+        vfile = "Contacts" + "_" + System.currentTimeMillis() + ".vcf";
     }
 
     private void initView() {
-        VCard vcard = new VCard();
-        StructuredName n = new StructuredName();
-        n.setFamily("House");
-        n.setGiven("Gregory");
-        n.getPrefixes().add("Dr");
-        n.getSuffixes().add("MD");
-        vcard.setStructuredName(n);
-        vcard.setFormattedName("Dr. Gregory House M.D.");
-        String text = Ezvcard.write(vcard).version(VCardVersion.V3_0).go();
-        btnBackup= (Button) findViewById(R.id.btn_submit);
+        btnBackup = (Button) findViewById(R.id.btn_submit);
+        txtShowProgress = (TextView) findViewById(R.id.txt_prg);
+        prg = (ProgressBar) findViewById(R.id.progress);
+    }
+
+
+    private void getVcardString() {
+        // TODO Auto-generated method stub
+        vCard = new ArrayList<String>();
+        cursor = getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null, null, null, null);
+        if (cursor != null && cursor.getCount() > 0) {
+            cursor.moveToFirst();
+            for (int i = 0; i < cursor.getCount(); i++) {
+                get(cursor);
+                Log.d("TAG", "Contact " + (i + 1) + "VcF String is" + vCard.get(i));
+                cursor.moveToNext();
+            }
+        } else {
+            Log.d("TAG", "No Contacts in Your Phone");
+        }
+    }
+
+    public void get(Cursor cursor) {
+        //cursor.moveToFirst();
+        String lookupKey = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts.LOOKUP_KEY));
+        Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_VCARD_URI, lookupKey);
+        AssetFileDescriptor fd;
+        try {
+            fd = this.getContentResolver().openAssetFileDescriptor(uri, "r");
+            // Your Complex Code and you used function without loop so how can you get all Contacts Vcard.??
+            FileInputStream fis = fd.createInputStream();
+            byte[] buf = new byte[(int) fd.getDeclaredLength()];
+            fis.read(buf);
+            String vcardstring = new String(buf);
+            vCard.add(vcardstring);
+            String storage_path = Environment.getExternalStorageDirectory().toString() + File.separator + vfile;
+            FileOutputStream mFileOutputStream = new FileOutputStream(storage_path, false);
+            mFileOutputStream.write(vcardstring.toString().getBytes());
+        } catch (Exception e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+    }
+
+    private void email(){
+        Intent email = new Intent(Intent.ACTION_SEND);
+        email.putExtra(Intent.EXTRA_EMAIL, "content");
+        email.putExtra(Intent.EXTRA_SUBJECT, "abc");
+        email.putExtra(Intent.EXTRA_TEXT, "text");
+        //need this to prompts email client only
+        email.setType("message/rfc822");
+        startActivity(Intent.createChooser(email, "Choose an Email client :"));
     }
 
     @Override
     public void onClick(View view) {
-//        new LoadContact().execute();
-    }
-
-    private class LoadContact extends AsyncTask<Void, Void, Void> {
-
-        @Override
-        protected Void doInBackground(Void... voids) {
-            readContacts();
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            super.onPostExecute(aVoid);
-            for (int i = 0; i < list.size(); i++) {
-                Log.d("Contact", "onPostExecute: " + list.get(i));
-            }
-        }
-    }
-
-    public void readContacts() {
-        ContentResolver cr = getContentResolver();
-        Cursor cur = cr.query(ContactsContract.Contacts.CONTENT_URI,
-                null, null, null, null);
-
-        if (cur.getCount() > 0) {
-            while (cur.moveToNext()) {
-                String id = cur.getString(cur.getColumnIndex(ContactsContract.Contacts._ID));
-                String name = cur.getString(cur.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
-                if (Integer.parseInt(cur.getString(cur.getColumnIndex(ContactsContract.Contacts.HAS_PHONE_NUMBER))) > 0) {
-                    System.out.println("name : " + name + ", ID : " + id);
-
-                    // get the phone number
-                    Cursor pCur = cr.query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null,
-                            ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
-                            new String[]{id}, null);
-                    while (pCur.moveToNext()) {
-                        String phone = pCur.getString(
-                                pCur.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
-                        System.out.println("phone" + phone);
-                        list.add(phone);
+        progressStatus = 0;
+        getVcardString();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(progressStatus <= 100){
+                    progressStatus +=1;
+                    try{
+                        Thread.sleep(20);
+                    }catch(InterruptedException e){
+                        e.printStackTrace();
                     }
-                    pCur.close();
-
-
-                    // get email and type
-
-                    Cursor emailCur = cr.query(
-                            ContactsContract.CommonDataKinds.Email.CONTENT_URI,
-                            null,
-                            ContactsContract.CommonDataKinds.Email.CONTACT_ID + " = ?",
-                            new String[]{id}, null);
-                    while (emailCur.moveToNext()) {
-                        // This would allow you get several email addresses
-                        // if the email addresses were stored in an array
-                        String email = emailCur.getString(
-                                emailCur.getColumnIndex(ContactsContract.CommonDataKinds.Email.DATA));
-                        String emailType = emailCur.getString(
-                                emailCur.getColumnIndex(ContactsContract.CommonDataKinds.Email.TYPE));
-
-                        System.out.println("Email " + email + " Email Type : " + emailType);
-                    }
-                    emailCur.close();
-
-                    // Get note.......
-                    String noteWhere = ContactsContract.Data.CONTACT_ID + " = ? AND " + ContactsContract.Data.MIMETYPE + " = ?";
-                    String[] noteWhereParams = new String[]{id,
-                            ContactsContract.CommonDataKinds.Note.CONTENT_ITEM_TYPE};
-                    Cursor noteCur = cr.query(ContactsContract.Data.CONTENT_URI, null, noteWhere, noteWhereParams, null);
-                    if (noteCur.moveToFirst()) {
-                        String note = noteCur.getString(noteCur.getColumnIndex(ContactsContract.CommonDataKinds.Note.NOTE));
-                        System.out.println("Note " + note);
-                    }
-                    noteCur.close();
-
-                    //Get Postal Address....
-
-                    String addrWhere = ContactsContract.Data.CONTACT_ID + " = ? AND " + ContactsContract.Data.MIMETYPE + " = ?";
-                    String[] addrWhereParams = new String[]{id,
-                            ContactsContract.CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE};
-                    Cursor addrCur = cr.query(ContactsContract.Data.CONTENT_URI,
-                            null, null, null, null);
-                    while (addrCur.moveToNext()) {
-                        String poBox = addrCur.getString(
-                                addrCur.getColumnIndex(ContactsContract.CommonDataKinds.StructuredPostal.POBOX));
-                        String street = addrCur.getString(
-                                addrCur.getColumnIndex(ContactsContract.CommonDataKinds.StructuredPostal.STREET));
-                        String city = addrCur.getString(
-                                addrCur.getColumnIndex(ContactsContract.CommonDataKinds.StructuredPostal.CITY));
-                        String state = addrCur.getString(
-                                addrCur.getColumnIndex(ContactsContract.CommonDataKinds.StructuredPostal.REGION));
-                        String postalCode = addrCur.getString(
-                                addrCur.getColumnIndex(ContactsContract.CommonDataKinds.StructuredPostal.POSTCODE));
-                        String country = addrCur.getString(
-                                addrCur.getColumnIndex(ContactsContract.CommonDataKinds.StructuredPostal.COUNTRY));
-                        String type = addrCur.getString(
-                                addrCur.getColumnIndex(ContactsContract.CommonDataKinds.StructuredPostal.TYPE));
-
-                        // Do something with these....
-
-                    }
-                    addrCur.close();
-
-                    // Get Instant Messenger.........
-                    String imWhere = ContactsContract.Data.CONTACT_ID + " = ? AND " + ContactsContract.Data.MIMETYPE + " = ?";
-                    String[] imWhereParams = new String[]{id,
-                            ContactsContract.CommonDataKinds.Im.CONTENT_ITEM_TYPE};
-                    Cursor imCur = cr.query(ContactsContract.Data.CONTENT_URI,
-                            null, imWhere, imWhereParams, null);
-                    if (imCur.moveToFirst()) {
-                        String imName = imCur.getString(
-                                imCur.getColumnIndex(ContactsContract.CommonDataKinds.Im.DATA));
-                        String imType;
-                        imType = imCur.getString(
-                                imCur.getColumnIndex(ContactsContract.CommonDataKinds.Im.TYPE));
-                    }
-                    imCur.close();
-
-                    // Get Organizations.........
-
-                    String orgWhere = ContactsContract.Data.CONTACT_ID + " = ? AND " + ContactsContract.Data.MIMETYPE + " = ?";
-                    String[] orgWhereParams = new String[]{id,
-                            ContactsContract.CommonDataKinds.Organization.CONTENT_ITEM_TYPE};
-                    Cursor orgCur = cr.query(ContactsContract.Data.CONTENT_URI,
-                            null, orgWhere, orgWhereParams, null);
-                    if (orgCur.moveToFirst()) {
-                        String orgName = orgCur.getString(orgCur.getColumnIndex(ContactsContract.CommonDataKinds.Organization.DATA));
-                        String title = orgCur.getString(orgCur.getColumnIndex(ContactsContract.CommonDataKinds.Organization.TITLE));
-                    }
-                    orgCur.close();
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            prg.setProgress(progressStatus);
+//                             Show the progress on TextView
+                            txtShowProgress.setText(progressStatus + " % ");
+                            if (progressStatus == 99){
+                                prg.setProgress(0);
+                                txtShowProgress.setText("0%");
+                                test();
+                            }
+                        }
+                    });
                 }
             }
-        }
+        }).start();
     }
 
+    private void test(){
+        File filelocation = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), vfile);
+        Uri path = Uri.fromFile(filelocation);
+        Intent emailIntent = new Intent(Intent.ACTION_SEND);
+        emailIntent .setType("vnd.android.cursor.dir/email");
+        String to[] = {"asd@gmail.com"};
+        emailIntent .putExtra(Intent.EXTRA_EMAIL, to);
+        emailIntent .putExtra(Intent.EXTRA_STREAM, path);
+        emailIntent .putExtra(Intent.EXTRA_SUBJECT, "Subject");
+        startActivity(Intent.createChooser(emailIntent , "Send email..."));
+    }
 }

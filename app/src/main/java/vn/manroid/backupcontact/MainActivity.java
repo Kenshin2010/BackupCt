@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +19,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     private List<String> list;
     private Button btnBackup;
+    private TextView txtNumPhone;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +33,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     private void initView() {
         btnBackup= (Button) findViewById(R.id.btn_submit);
+        txtNumPhone= (TextView) findViewById(R.id.text_show);
     }
 
     @Override
@@ -39,7 +42,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     }
 
     private class LoadContact extends AsyncTask<Void, Void, Void> {
-
         @Override
         protected Void doInBackground(Void... voids) {
             readContacts();
@@ -52,6 +54,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             for (int i = 0; i < list.size(); i++) {
                 Log.d("Contact", "onPostExecute: " + list.get(i));
             }
+            txtNumPhone.setText("Total: " + list.size() + " contacts");
         }
     }
 
