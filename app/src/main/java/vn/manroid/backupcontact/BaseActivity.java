@@ -29,8 +29,10 @@ import java.util.List;
 
 public class BaseActivity extends AppCompatActivity {
 
-    private int PERMISSION_REQUEST_CONTACT = 100;
-    private int PICK_CONTACT = 101;
+    public int PERMISSION_REQUEST_CONTACT = 100;
+    public int PERMISSION_REQUEST_WRITE_MEMORY = 200;
+    public int PERMISSION_REQUEST_READ_MEMORY = 300;
+    public int PICK_CONTACT = 101;
 
     private AlertDialog mAlertDialog;
 
@@ -108,5 +110,34 @@ public class BaseActivity extends AppCompatActivity {
 
         }
     }
+
+
+
+    public boolean checkPermissionAlwayDenied(String... listPermission) {
+//        PrefManager sharePrefer = PrefManager.getInstance();
+//        for (String permission : listPermission) {
+//            if (sharePrefer.getBoolean(permission))
+//                return true;
+//        }
+        return false;
+    }
+
+    protected void requestPermission(int requestCode, String... listPermission) {
+        ActivityCompat.requestPermissions(this, listPermission, requestCode);
+    }
+
+    protected void showAlertDialog(@Nullable String title, @Nullable String message,
+                                   @Nullable DialogInterface.OnClickListener onPositiveButtonClickListener,
+                                   @NonNull String positiveText,
+                                   @Nullable DialogInterface.OnClickListener onNegativeButtonClickListener,
+                                   @NonNull String negativeText) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(title);
+        builder.setMessage(message);
+        builder.setPositiveButton(positiveText, onPositiveButtonClickListener);
+        builder.setNegativeButton(negativeText, onNegativeButtonClickListener);
+        mAlertDialog = builder.show();
+    }
+
 
 }
