@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="CustomTextView">
+        <attr name="customFont" format="string"/>
+    </declare-styleable>
+
+    <declare-styleable name="CustomEditText">
+        <attr name="customText" format="string"/>
+    </declare-styleable>
+
+    <declare-styleable name="CustomButton">
+        <attr name="myText_1" format="string" />
+        <attr name="myText_2" format="string" />
+    </declare-styleable>
+</resources>

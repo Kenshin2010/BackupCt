@@ -1,4 +1,4 @@
-package vn.manroid.backupcontact;
+package vn.manroid.backupcontact.activity;
 
 import android.Manifest;
 import android.annotation.TargetApi;
